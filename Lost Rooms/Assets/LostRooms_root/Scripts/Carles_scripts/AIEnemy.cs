@@ -3,61 +3,50 @@ using UnityEngine.AI;
 
 public class AIEnemy : MonoBehaviour
 {
-    [Header("Patrol")]
-    public Transform[] waypoints;
-    public float patrolSpeed = 3f;
+    [Header("Patrol Settings")]
+    public float wanderRadius = 20f;
+    public float wanderTimer = 5f;
 
-    [Header("Chase/Attack")]
+    [Header("Vision Settings")]
+    public float visionRange = 10f;
+    [Range(0, 360)] public float visionAngle = 120f;
+    public LayerMask obstructMask;
+
+    [Header("Chase Settings")]
     public float chaseSpeed = 5f;
-    public float chaseRange = 10f;
-    public float attackRange = 2f;
-    public float timeBetweenAttacks = 1f;
+    public float patrolSpeed = 3f;
 
     private NavMeshAgent agent;
     private Transform player;
-    private int currentWaypoint = 0;
-    private float attackTimer = 0f;
+    private float timer;
+    private bool playerDetected = false;
 
     void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
-    }
-
-    void Start()
-    {
-        if (waypoints.Length > 0)
-        {
-            agent.speed = patrolSpeed;
-            agent.SetDestination(waypoints[currentWaypoint].position);
-        }
+        timer = wanderTimer;
     }
 
     void Update()
     {
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        DetectPlayer();
 
-        if (distanceToPlayer <= attackRange)
-        {
-            AttackPlayer();
-        }
-        else if (distanceToPlayer <= chaseRange)
-        {
+        if (playerDetected)
             ChasePlayer();
-        }
         else
-        {
             Patrol();
-        }
     }
 
     void Patrol()
     {
         agent.speed = patrolSpeed;
-        if (!agent.pathPending && agent.remainingDistance < 0.5f)
+        timer += Time.deltaTime;
+        if (timer >= wanderTimer || !agent.hasPath)
         {
-            currentWaypoint = (currentWaypoint + 1) % waypoints.Length;
-            agent.SetDestination(waypoints[currentWaypoint].position);
+            Vector3 newPos = RandomNavSphere(transform.position, wanderRadius);
+            agent.SetDestination(newPos);
+            timer = 0f;
         }
     }
 
@@ -67,23 +56,38 @@ public class AIEnemy : MonoBehaviour
         agent.SetDestination(player.position);
     }
 
-    void AttackPlayer()
+    void DetectPlayer()
     {
-        agent.ResetPath();
-        attackTimer += Time.deltaTime;
-        if (attackTimer >= timeBetweenAttacks)
+        Vector3 dirToPlayer = (player.position - transform.position).normalized;
+        float distToPlayer = Vector3.Distance(transform.position, player.position);
+
+        if (distToPlayer <= visionRange &&
+            Vector3.Angle(transform.forward, dirToPlayer) <= visionAngle / 2)
         {
-            // Aquí implementar daño u otra lógica de ataque
-            Debug.Log("Enemy attacks the player!");
-            attackTimer = 0f;
+            if (!Physics.Raycast(transform.position + Vector3.up * 1.5f, dirToPlayer, distToPlayer, obstructMask))
+            {
+                playerDetected = true;
+                return;
+            }
         }
+        playerDetected = false;
+    }
+
+    public static Vector3 RandomNavSphere(Vector3 origin, float dist)
+    {
+        Vector3 randomDir = Random.insideUnitSphere * dist;
+        randomDir += origin;
+        NavMeshHit navHit;
+        NavMesh.SamplePosition(randomDir, out navHit, dist, NavMesh.AllAreas);
+        return navHit.position;
     }
 
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, chaseRange);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position, visionRange);
+        Vector3 fwd = Quaternion.Euler(0, visionAngle / 2, 0) * transform.forward;
+        Gizmos.DrawRay(transform.position, fwd * visionRange);
+        Gizmos.DrawRay(transform.position, Quaternion.Euler(0, -visionAngle / 2, 0) * transform.forward * visionRange);
     }
 }
