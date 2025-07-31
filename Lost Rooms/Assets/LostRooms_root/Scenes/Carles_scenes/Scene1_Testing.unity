@@ -333,7 +333,7 @@ Transform:
   m_GameObject: {fileID: 351461366}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.9896156, y: 1, z: -14.85}
+  m_LocalPosition: {x: 19.7, y: 1, z: -14.85}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -607,7 +607,7 @@ Transform:
   m_GameObject: {fileID: 750040725}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.24, z: 0}
   m_LocalScale: {x: 6.420505, y: 1, z: 5.786189}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -657,6 +657,7 @@ GameObject:
   - component: {fileID: 918717352}
   - component: {fileID: 918717351}
   - component: {fileID: 918717354}
+  - component: {fileID: 918717355}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -782,6 +783,23 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &918717355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 918717350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0c6f8e20ec3c9845bfbb6202423f59a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  positionAmplitude: 1
+  rotationAmplitude: 3
+  frequency: 5
+  playerRb: {fileID: 1557941718}
+  isGrounded: 0
 --- !u!1 &1178076333
 GameObject:
   m_ObjectHideFlags: 0
@@ -976,7 +994,7 @@ GameObject:
   - component: {fileID: 1557941711}
   - component: {fileID: 1557941710}
   - component: {fileID: 1557941714}
-  - component: {fileID: 1557941715}
+  - component: {fileID: 1557941718}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -1069,7 +1087,7 @@ Transform:
   m_GameObject: {fileID: 1557941709}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 0, y: 0.87, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1095,31 +1113,37 @@ MonoBehaviour:
   playerCamera: {fileID: 918717353}
   crouchHeight: 1
   crouchSpeedFactor: 0.5
---- !u!143 &1557941715
-CharacterController:
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 8
+  groundCheckDistance: 0.2
+--- !u!54 &1557941718
+Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1557941709}
-  m_Material: {fileID: 0}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
-  m_Radius: 0.5
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 1
 --- !u!1 &1586807750
 GameObject:
   m_ObjectHideFlags: 0

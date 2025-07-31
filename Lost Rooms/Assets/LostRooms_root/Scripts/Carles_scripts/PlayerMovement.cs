@@ -1,5 +1,6 @@
 using UnityEngine;
 
+
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movimiento")]
@@ -7,7 +8,7 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = -9.81f;
     public float jumpHeight = 1.5f;
 
-    [Header("C�mara")]
+    [Header("Cámara")]
     public float mouseSensitivity = 100f;
     public Transform playerCamera;
 
@@ -15,21 +16,24 @@ public class PlayerMovement : MonoBehaviour
     public float crouchHeight = 1f;
     public float crouchSpeedFactor = 0.5f;
 
-    private CharacterController controller;
-    private Vector3 velocity;
-    private float xRotation = 0f;
-
+    private Rigidbody rb;
+    private CapsuleCollider capsule;
     private float standHeight;
-    private Vector3 standCenter;
     private Vector3 cameraStandLocalPos;
-    private bool isCrouching = false;
+    private bool isCrouching;
+
+    private float xRotation;
+    private bool isGrounded;
+    public LayerMask groundMask;
+    public float groundCheckDistance = 0.2f;
 
     void Awake()
     {
-        controller = GetComponent<CharacterController>();
-        standHeight = controller.height;
-        standCenter = controller.center;
+        rb = GetComponent<Rigidbody>();
+        capsule = GetComponent<CapsuleCollider>();
+        standHeight = capsule.height;
         cameraStandLocalPos = playerCamera.localPosition;
+        rb.freezeRotation = true;
     }
 
     void Start()
@@ -41,13 +45,13 @@ public class PlayerMovement : MonoBehaviour
     {
         HandleMouseLook();
         HandleCrouch();
-        HandleMovement();
-        ApplyGravity();
+        HandleJump();
+        CheckGrounded();
+    }
 
-        if (Input.GetButtonDown("Jump") && controller.isGrounded && !isCrouching)
-        {
-            Jump();
-        }
+    void FixedUpdate()
+    {
+        HandleMovement();
     }
 
     void HandleMouseLook()
@@ -55,40 +59,48 @@ public class PlayerMovement : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+        xRotation = Mathf.Clamp(xRotation - mouseY, -90f, 90f);
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-
         transform.Rotate(Vector3.up * mouseX);
     }
 
     void HandleCrouch()
     {
-        if (Input.GetKeyDown(KeyCode.LeftShift) && controller.isGrounded)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && isGrounded)
         {
             if (isCrouching)
-                Stand();
+            {
+                if (CanStandUp())
+                    Stand();
+                else
+                    Debug.Log("¡No puedes levantarte, hay algo encima!");
+            }
             else
+            {
                 Crouch();
+            }
         }
+    }
+
+    bool CanStandUp()
+    {
+        float headCheckDistance = (standHeight - crouchHeight);
+        Vector3 origin = transform.position + Vector3.up * (crouchHeight / 2f);
+        return !Physics.Raycast(origin, Vector3.up, headCheckDistance);
     }
 
     void Crouch()
     {
-        controller.height = crouchHeight;
-        controller.center = new Vector3(standCenter.x, crouchHeight / 2f, standCenter.z);
-        playerCamera.localPosition = new Vector3(
-            cameraStandLocalPos.x,
-            cameraStandLocalPos.y - (standHeight - crouchHeight) / 2f,
-            cameraStandLocalPos.z
-        );
+        capsule.height = crouchHeight;
+        capsule.center = new Vector3(0, crouchHeight / 2f, 0);
+        playerCamera.localPosition = cameraStandLocalPos - Vector3.up * ((standHeight - crouchHeight) / 2f);
         isCrouching = true;
     }
 
     void Stand()
     {
-        controller.height = standHeight;
-        controller.center = standCenter;
+        capsule.height = standHeight;
+        capsule.center = new Vector3(0, standHeight / 2f, 0);
         playerCamera.localPosition = cameraStandLocalPos;
         isCrouching = false;
     }
@@ -97,22 +109,37 @@ public class PlayerMovement : MonoBehaviour
     {
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
-        Vector3 move = transform.right * x + transform.forward * z;
+
+        Vector3 move = (transform.right * x + transform.forward * z).normalized;
         float speed = moveSpeed * (isCrouching ? crouchSpeedFactor : 1f);
-        controller.Move(move * speed * Time.deltaTime);
+        Vector3 moveVelocity = move * speed;
+
+        Vector3 velocity = new Vector3(moveVelocity.x, rb.linearVelocity.y, moveVelocity.z);
+        rb.linearVelocity = velocity;
     }
 
-    void ApplyGravity()
+    void HandleJump()
     {
-        if (controller.isGrounded && velocity.y < 0)
-            velocity.y = -2f;
-
-        velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded && !isCrouching)
+        {
+            Debug.Log("Saltando!");
+            float jumpVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpVelocity, rb.linearVelocity.z);
+        }
     }
 
-    void Jump()
+    void CheckGrounded()
     {
-        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        isGrounded = Physics.CheckSphere(transform.position + Vector3.down * (capsule.height / 2f), groundCheckDistance, groundMask);
     }
+
+    void OnDrawGizmosSelected()
+    {
+        if (capsule != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position + Vector3.down * (capsule.height / 2f), groundCheckDistance);
+        }
+    }
+
 }
